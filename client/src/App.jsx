@@ -1,8 +1,14 @@
-import { useState } from "react";
-import "./App.css";
+import React from "react";
+import PopularBooks from "./PopularBooks";
+import RecommendBooks from "./RecommendBooks";
 
-function App() {
-  return <div>Home</div>;
-}
+const App = () => {
+  return (
+    <div>
+      <PopularBooks />
+      <RecommendBooks />
+    </div>
+  );
+};
 
 export default App;
