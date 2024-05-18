@@ -1,52 +1,72 @@
-from flask import Flask, jsonify, request
-import pickle
+from flask import Flask, jsonify, request, render_template
+import pandas as pd
 
 app = Flask(__name__)
 
-with open('popular.pkl', 'rb') as f:
-    popular_df = pickle.load(f)
+# Dummy data for popular_df
+popular_data = {
+    'Book-Title': ['Dummy Book 1', 'Dummy Book 2', 'Dummy Book 3'],
+    'Book-Author': ['Author A', 'Author B', 'Author C'],
+    'Image-URL-M': [
+        'https://via.placeholder.com/150x200.png?text=Dummy+Book+1',
+        'https://via.placeholder.com/150x200.png?text=Dummy+Book+2',
+        'https://via.placeholder.com/150x200.png?text=Dummy+Book+3'
+    ],
+    'num_ratings': [100, 200, 150],
+    'avg_rating': [4.5, 3.8, 4.2]
+}
+popular_df = pd.DataFrame(popular_data)
 
-with open('pt.pkl', 'rb') as f:
-    pt = pickle.load(f)
+# Dummy data for pt
+pt_data = {
+    'index': ['Dummy Book 1', 'Dummy Book 2', 'Dummy Book 3']
+}
+pt = pd.DataFrame(pt_data)
+pt.set_index('index', inplace=True)
 
-with open('books.pkl', 'rb') as f:
-    books = pickle.load(f)
+# Dummy data for books
+books_data = {
+    'Book-Title': ['Dummy Book 1', 'Dummy Book 2', 'Dummy Book 3']
+}
+books = pd.DataFrame(books_data)
 
-with open('similarity_scores.pkl', 'rb') as f:
-    similarity_scores = pickle.load(f)
+# Dummy data for similarity_scores
+similarity_scores_data = [
+    [0.9, 0.5, 0.3],
+    [0.5, 0.9, 0.7],
+    [0.3, 0.7, 0.9]
+]
+similarity_scores = pd.DataFrame(similarity_scores_data)
+
+@app.route('/')
+def index():
+    return render_template('index.html', popular_df=popular_df)
 
 @app.route('/api/popular_books', methods=['GET'])
-def get_popular_books():
-    books_data = [{
-        'book_name': book['Book-Title'],
-        'author': book['Book-Author'],
-        'image': book['Image-URL-M'],
-        'votes': book['num_ratings'],
-        'rating': book['avg_rating']
-    } for book in popular_df]
-    return jsonify(books_data)
+def get_popular():
+    # Iterate over popular_df and create a list of dictionaries containing book details
+    books_list = []
+    for index, row in popular_df.iterrows():
+        book_details = {
+            'title': row['Book-Title'],
+            'author': row['Book-Author'],
+            'image': row['Image-URL-M'],
+            'votes': row['num_ratings'],
+            'rating': row['avg_rating']
+        }
+        books_list.append(book_details)
 
-@app.route('/api/recommend_books', methods=['POST'])
-def recommend_books():
-    user_input = request.json.get('user_input')
-    try:
-        index = list(pt.index).index(user_input)
-        similar_items = sorted(list(enumerate(similarity_scores[index])), key=lambda x: x[1], reverse=True)[1:5]
+    # Return the list of dictionaries as JSON
+    return jsonify(books_list)
 
-        data = []
-        for i in similar_items:
-            temp_df = [book for book in books if book['Book-Title'] == pt.index[i[0]]]
-            if temp_df:
-                item = {
-                    'book_name': temp_df[0]['Book-Title'],
-                    'author': temp_df[0]['Book-Author'],
-                    'image': temp_df[0]['Image-URL-M']
-                }
-                data.append(item)
+@app.route('/api/similarity_scores', methods=['GET'])
+def get_similarity_scores():
+    # Convert the similarity_scores DataFrame to a list of lists
+    scores_list = similarity_scores.values.tolist()
 
-        return jsonify(data)
-    except ValueError:
-        return jsonify([]), 404
+    # Return the list of lists as JSON
+    return jsonify(scores_list)
+
 
 if __name__ == '__main__':
-    app.run(port=5000)
+    app.run(debug=True)
